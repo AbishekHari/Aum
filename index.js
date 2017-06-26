@@ -4,7 +4,6 @@ var Alexa = require('alexa-sdk');
 var APP_ID = 'amzn1.ask.skill.862865b7-0035-418a-b670-0d846021bcc9';
 
 var audioTracks = require('./tracksList');
-var offsetInMilliseconds = 0;
 
 var audioState = {
     AUDIO_INIT    : '',
@@ -23,7 +22,7 @@ var STOP_MESSAGE = 'Goodbye!';
 var stateHandlers = {
     audioInitHandler : Alexa.CreateStateHandler(audioState.AUDIO_INIT, {
         'LaunchRequest' : function () {
-            offsetInMilliseconds = 0;
+            this.attributes['offsetInMilliseconds'] = 0;
 	    // Play prayer song based on the day of the week
             //nowPlayingIndex = new Date().getDay();
 
@@ -33,7 +32,7 @@ var stateHandlers = {
             this.emit(':responseReady');
         },
         'PlayHymn' : function () {
-            offsetInMilliseconds = 0;
+            this.attributes['offsetInMilliseconds'] = 0;
 	    // Play prayer song based on the day of the week
             //nowPlayingIndex = new Date().getDay();
             controller.play.call(this);
@@ -49,6 +48,8 @@ var stateHandlers = {
 	    sendResponse.call(this, STOP_MESSAGE);
         },
         'SessionEndedRequest' : function () {
+	    controller.stop.call(this);
+            console.log("Session ended! - INIT");
         },
         'Unhandled' : function () {
             this.response.speak(UNKNOWN_INTENT_MESSAGE).listen(UNKNOWN_INTENT_MESSAGE);
@@ -59,7 +60,7 @@ var stateHandlers = {
         'LaunchRequest' : function () {
             var message;
             var reprompt;
-            if (offsetInMilliseconds === 0) {
+            if (this.attributes['offsetInMilliseconds'] === 0) {
                 this.handler.state = audioState.AUDIO_START;
                 message = WELCOME_MESSAGE;
                 reprompt = REPROMPT_MESSAGE;
@@ -88,6 +89,8 @@ var stateHandlers = {
 	    limitedFunctionalityMessage.call(this);
         },
         'SessionEndedRequest' : function () {
+	    controller.stop.call(this);
+            console.log("Session ended! - PLAY");
         },
         'Unhandled' : function () {
             var message = 'Sorry, I could not understand. ';
@@ -114,9 +117,11 @@ var stateHandlers = {
 	    sendResponse.call(this, STOP_MESSAGE);
         },
         'AMAZON.CancelIntent' : function () {
-            this.emit(':responseReady');
+	    sendResponse.call(this, STOP_MESSAGE);
         },
         'SessionEndedRequest' : function () {
+	    controller.stop.call(this);
+            console.log("Session ended! - RESUME");
         },
         'Unhandled' : function () {
             this.response.speak(UNKNOWN_INTENT_MESSAGE).listen(UNKNOWN_INTENT_MESSAGE);
@@ -139,7 +144,7 @@ var controller = function () {
 	    this.response.speak(cardTitle);
             this.response.cardRenderer(cardTitle, cardContent, null);
 
-            this.response.audioPlayerPlay(playBehavior, track.url, token, null, offsetInMilliseconds);
+            this.response.audioPlayerPlay(playBehavior, track.url, token, null, this.attributes['offsetInMilliseconds']);
 	    //this.attributes['trackUrl'] = track.url;
             this.emit(':responseReady');
         },
@@ -166,13 +171,11 @@ var controller = function () {
 	    sendResponse.call(this, 'Sorry, I can’t shuffle music yet.');
         },
         startOver: function () {
-            // Start over the current audio file.
-            offsetInMilliseconds = 0;
+            this.attributes['offsetInMilliseconds'] = 0;
             controller.play.call(this);
         },
         reset: function () {
-            // Reset to top of the playlist.
-            offsetInMilliseconds = 0;
+            this.attributes['offsetInMilliseconds'] = 0;
             controller.play.call(this);
         }
     }
@@ -214,7 +217,7 @@ var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
 	// may be because of Pause / Stop Intent
 
         // Save the current audio offset to initiate resume
-        offsetInMilliseconds = this.event.request.offsetInMilliseconds;
+        this.attributes['offsetInMilliseconds'] = this.event.request.offsetInMilliseconds;
         //nowPlayingIndex = this.event.request.token;
         this.emit(':saveState', true);
     },
