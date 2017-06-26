@@ -1,13 +1,10 @@
 'use strict';
 
-// Skill name Hindu Prayer
-
 var Alexa = require('alexa-sdk');
-var APP_ID = 'amzn1.ask.skill.862865b7-0035-418a-b670-0d846021bcc9';  // TODO replace with your app ID (OPTIONAL).
+var APP_ID = 'amzn1.ask.skill.862865b7-0035-418a-b670-0d846021bcc9';
 
 var audioTracks = require('./tracksList');
 var offsetInMilliseconds = 0;
-var loop = true;
 
 var audioState = {
     AUDIO_INIT    : '',
@@ -39,7 +36,6 @@ var stateHandlers = {
             offsetInMilliseconds = 0;
 	    // Play prayer song based on the day of the week
             //nowPlayingIndex = new Date().getDay();
-            this.handler.state = audioState.AUIDO_INIT;
             controller.play.call(this);
         },
         'AMAZON.HelpIntent' : function () {
@@ -47,10 +43,10 @@ var stateHandlers = {
             this.emit(':responseReady');
         },
         'AMAZON.StopIntent' : function () {
-	    sendResponse(this, STOP_MESSAGE);
+	    sendResponse.call(this, STOP_MESSAGE);
         },
         'AMAZON.CancelIntent' : function () {
-	    sendResponse(this, STOP_MESSAGE);
+	    sendResponse.call(this, STOP_MESSAGE);
         },
         'SessionEndedRequest' : function () {
         },
@@ -89,7 +85,7 @@ var stateHandlers = {
         'AMAZON.ShuffleOffIntent' : function () { controller.shuffleOff.call(this) },
         'AMAZON.StartOverIntent' : function () { controller.startOver.call(this) },
         'AMAZON.HelpIntent' : function () {
-	    limitedFunctionalityMessage();
+	    limitedFunctionalityMessage.call(this);
         },
         'SessionEndedRequest' : function () {
         },
@@ -115,7 +111,7 @@ var stateHandlers = {
             this.emit(':responseReady');
         },
         'AMAZON.StopIntent' : function () {
-	    sendResponse(this, STOP_MESSAGE);
+	    sendResponse.call(this, STOP_MESSAGE);
         },
         'AMAZON.CancelIntent' : function () {
             this.emit(':responseReady');
@@ -140,28 +136,28 @@ var controller = function () {
 
             var cardTitle = 'Playing ' + track.title;
             var cardContent = 'Playing ' + track.title;
+	    this.response.speak(cardTitle);
             this.response.cardRenderer(cardTitle, cardContent, null);
 
             this.response.audioPlayerPlay(playBehavior, track.url, token, null, offsetInMilliseconds);
+	    //this.attributes['trackUrl'] = track.url;
             this.emit(':responseReady');
         },
         stop: function () {
             this.response.audioPlayerStop();
-            this.emit(':responseReady');
+	    sendResponse.call(this, STOP_MESSAGE);
         },
         playNext: function () {
-	    limitedFunctionalityMessage();
+	    limitedFunctionalityMessage.call(this);
         },
         playPrevious: function () {
-	    limitedFunctionalityMessage();
+	    limitedFunctionalityMessage.call(this);
         },
         loopOn: function () {
-            loop = true;
-	    sendResponse.call(this, 'Loop turned on.');
+	    limitedFunctionalityMessage.call(this);
         },
         loopOff: function () {
-            loop = false;
-	    sendResponse.call(this, 'Loop turned off.');
+	    limitedFunctionalityMessage.call(this);
         },
         shuffleOn: function () {
 	    sendResponse.call(this, 'Sorry, I can’t shuffle music yet.');
@@ -189,7 +185,7 @@ function sendResponse(message) {
 
 function limitedFunctionalityMessage() {
     var message = 'You are listening to Maha Ganapathim Nadaswaram. Currently, there is only one track avaiable on this version of skill. ';
-    var reprompt = 'At any time, you can say Pause to pause the audio or say Loop to repeat and say Resume to resume.';
+    var reprompt = 'At any time, you can say Pause to pause the audio and say Resume to resume.';
     this.response.speak(message + reprompt).listen(reprompt);
     this.emit(':responseReady');
 }
@@ -200,13 +196,14 @@ var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
 
 	// should check if the correct audio is playing?
 
-        offsetInMilliseconds = 0;
+	//this.attributes['started'] = true;
+        //offsetInMilliseconds = 0;
         this.emit(':saveState', true);
     },
     'PlaybackFinished' : function () {
 	// Sent when the stream Alexa is playing comes to an end on its own.
         // reset offset
-        offsetInMilliseconds = 0;
+        //offsetInMilliseconds = 0;
 
 	// ask user if they would like to queue up next song. If play all is not active
 
@@ -226,6 +223,7 @@ var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
     },
     'PlaybackFailed' : function () {
         // Sent when Alexa encounters an error when attempting to play a stream. 
+	//this.attributes['fail'] = true;
         console.log("Playback Failed : %j", this.event.request.error);
 
 	// Inform user that we are unable to play? Something went wrong?
@@ -235,7 +233,8 @@ var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
 
 exports.handler = function(event, context, callback){
     var alexa = Alexa.handler(event, context, callback);
-    alexa.APP_ID = APP_ID;
+    alexa.appId = APP_ID;
+    alexa.dynamoDBTableName = 'AudioPlayerHymns';
     alexa.registerHandlers(
         stateHandlers.audioInitHandler,
         stateHandlers.audioPlayHandler,
