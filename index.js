@@ -26,6 +26,7 @@ var stateHandlers = {
 	    // Play prayer song based on the day of the week
             //nowPlayingIndex = new Date().getDay();
 
+            console.log("INIT - Lauch");
             this.handler.state = audioState.AUDIO_INIT;
 
             this.response.speak(WELCOME_MESSAGE).listen(REPROMPT_MESSAGE);
@@ -35,6 +36,7 @@ var stateHandlers = {
             this.attributes['offsetInMilliseconds'] = 0;
 	    // Play prayer song based on the day of the week
             //nowPlayingIndex = new Date().getDay();
+            console.log("INIT - PlayHymn");
             controller.play.call(this);
         },
         'AMAZON.HelpIntent' : function () {
@@ -42,14 +44,16 @@ var stateHandlers = {
             this.emit(':responseReady');
         },
         'AMAZON.StopIntent' : function () {
-	    sendResponse.call(this, STOP_MESSAGE);
+            console.log("INIT - Stop");
+	    controller.stop.call(this);
         },
         'AMAZON.CancelIntent' : function () {
-	    sendResponse.call(this, STOP_MESSAGE);
+            console.log("INIT - Cancel");
+	    controller.stop.call(this);
         },
         'SessionEndedRequest' : function () {
+            console.log("INIT - Session ended!");
 	    controller.stop.call(this);
-            console.log("Session ended! - INIT");
         },
         'Unhandled' : function () {
             this.response.speak(UNKNOWN_INTENT_MESSAGE).listen(UNKNOWN_INTENT_MESSAGE);
@@ -58,6 +62,7 @@ var stateHandlers = {
     }),
     audioPlayHandler : Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
         'LaunchRequest' : function () {
+            console.log("PLAY - Launch");
             var message;
             var reprompt;
             if (this.attributes['offsetInMilliseconds'] === 0) {
@@ -76,7 +81,7 @@ var stateHandlers = {
         'PlayHymn' : function () { controller.play.call(this) },
         'AMAZON.NextIntent' : function () { controller.playNext.call(this) },
         'AMAZON.PreviousIntent' : function () { controller.playPrevious.call(this) },
-        'AMAZON.PauseIntent' : function () { controller.stop.call(this) },
+        'AMAZON.PauseIntent' : function () { controller.pause.call(this) },
         'AMAZON.StopIntent' : function () { controller.stop.call(this) },
         'AMAZON.CancelIntent' : function () { controller.stop.call(this) },
         'AMAZON.ResumeIntent' : function () { controller.play.call(this) },
@@ -89,8 +94,8 @@ var stateHandlers = {
 	    limitedFunctionalityMessage.call(this);
         },
         'SessionEndedRequest' : function () {
+            console.log("PLAY - Session Ended!");
 	    controller.stop.call(this);
-            console.log("Session ended! - PLAY");
         },
         'Unhandled' : function () {
             var message = 'Sorry, I could not understand. ';
@@ -102,6 +107,7 @@ var stateHandlers = {
     }),
     audioResumeHandler : Alexa.CreateStateHandler(audioState.AUDIO_RESUME, {
         'LaunchRequest' : function () {
+            console.log("RESUME - Launch");
             var message = 'You were listening to ' + audioTracks[0].title + RESUME_MESSAGE;
             this.response.speak(message).listen(RESUME_REPROMPT_MESSAGE);
             this.emit(':responseReady');
@@ -114,14 +120,16 @@ var stateHandlers = {
             this.emit(':responseReady');
         },
         'AMAZON.StopIntent' : function () {
-	    sendResponse.call(this, STOP_MESSAGE);
+            console.log("RESUME - Stop");
+	    controller.stop.call(this);
         },
         'AMAZON.CancelIntent' : function () {
-	    sendResponse.call(this, STOP_MESSAGE);
+            console.log("RESUME - Cancel");
+	    controller.stop.call(this);
         },
         'SessionEndedRequest' : function () {
+            console.log("RESUME - Session ended!");
 	    controller.stop.call(this);
-            console.log("Session ended! - RESUME");
         },
         'Unhandled' : function () {
             this.response.speak(UNKNOWN_INTENT_MESSAGE).listen(UNKNOWN_INTENT_MESSAGE);
@@ -133,6 +141,7 @@ var stateHandlers = {
 var controller = function () {
     return {
         play: function () {
+            console.log("controller - play");
             this.handler.state = audioState.AUDIO_PLAY;
 
             var token = String('mahaGanapathim');
@@ -149,8 +158,16 @@ var controller = function () {
             this.emit(':responseReady');
         },
         stop: function () {
-            this.response.audioPlayerStop();
+            console.log("controller - stop");
+	    this.attributes['offsetInMilliseconds'] = 0;
+            var clearBehavior = 'CLEAR_ALL';
+	    this.response.audioPlayerClearQueue(clearBehavior);
 	    sendResponse.call(this, STOP_MESSAGE);
+        },
+        pause: function () {
+            console.log("controller - pause");
+            this.response.audioPlayerStop();
+	    sendResponse.call(this, '');
         },
         playNext: function () {
 	    limitedFunctionalityMessage.call(this);
@@ -171,6 +188,7 @@ var controller = function () {
 	    sendResponse.call(this, 'Sorry, I can’t shuffle music yet.');
         },
         startOver: function () {
+            console.log("controller - startover");
             this.attributes['offsetInMilliseconds'] = 0;
             controller.play.call(this);
         },
@@ -195,6 +213,7 @@ function limitedFunctionalityMessage() {
 
 var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
     'PlaybackStarted' : function () {
+        console.log("playBackHandler - PlaybackStarted");
         // Sent when Alexa begins playing the audio stream previously sent in a Play directive. This lets your skill verify that playback began successfully.
 
 	// should check if the correct audio is playing?
@@ -204,6 +223,7 @@ var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
         this.emit(':saveState', true);
     },
     'PlaybackFinished' : function () {
+        console.log("playBackHandler - PlaybackFinished");
 	// Sent when the stream Alexa is playing comes to an end on its own.
         // reset offset
         //offsetInMilliseconds = 0;
@@ -213,6 +233,7 @@ var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
         this.emit(':saveState', true);
     },
     'PlaybackStopped' : function () {
+        console.log("playBackHandler - PlaybackStopped");
 	// Sent when Alexa stops playing an audio stream in response to a voice request or an AudioPlayer directive.
 	// may be because of Pause / Stop Intent
 
@@ -222,6 +243,7 @@ var playBackHandler = Alexa.CreateStateHandler(audioState.AUDIO_PLAY, {
         this.emit(':saveState', true);
     },
     'PlaybackNearlyFinished' : function () {
+        console.log("playBackHandler - PlaybackNearlyFinished");
         this.context.succeed(true);
     },
     'PlaybackFailed' : function () {
